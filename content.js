@@ -105,7 +105,11 @@ async function doSendFlow(target, message) {
 
     // Verify chat opened correctly
     let chatTitleSpan = document.querySelector('span[data-testid="conversation-info-header-chat-title"]');
-    if (!chatTitleSpan || chatTitleSpan.textContent.trim().toLowerCase() !== target.toLowerCase()) {
+    let chatTitle = chatTitleSpan
+      ? (chatTitleSpan.getAttribute("title") || chatTitleSpan.textContent || "").trim()
+      : "";
+    
+    if (!chatTitleSpan || chatTitle.toLowerCase() !== target.toLowerCase()) {
       // If pressing Enter didn't work, we try clicking the list.
       const contactSpan = await findContactInList(target);
       if (!contactSpan) {
@@ -120,8 +124,8 @@ async function doSendFlow(target, message) {
     }
 
     // Hard fail if we are not in the correct room
-    if (!chatTitleSpan || chatTitleSpan.textContent.trim().toLowerCase() !== target.toLowerCase()) {
-      throw new Error(`Failed to open target chat room. Active room is: ${chatTitleSpan ? chatTitleSpan.textContent.trim() : 'Unknown'}`);
+    if (!chatTitleSpan || chatTitle.toLowerCase() !== target.toLowerCase()) {
+      throw new Error(`Failed to open target chat room. Active room is: ${chatTitle || "Unknown"}`);
     }
 
     // 3. Locate the chat message box (usually the contenteditable inside footer)
