@@ -126,6 +126,7 @@ async function executeSchedule(id) {
           action: "send",
           target: schedule.target,
           targetType: schedule.targetType,
+          recipients: schedule.recipients,
           message: schedule.message,
         });
 
