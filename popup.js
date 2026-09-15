@@ -250,6 +250,10 @@ function saveSchedule() {
     id: String(Date.now()) + Math.floor(Math.random() * 1000),
     target: values.target,
     targetType: "name",
+    recipients: values.target
+    .split(",")
+    .map((name) => name.trim())
+    .filter(Boolean),
     message: values.message,
     scheduledTime: values.nextRun,
     nextRun: values.nextRun,
