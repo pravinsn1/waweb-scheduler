@@ -157,6 +157,38 @@ async function doSendFlow(target, message) {
   }
 }
 
+async function doMultiSendFlow(recipients, message) {
+  const results = [];
+
+  for (const recipient of recipients) {
+    const target = String(recipient || "").trim();
+    if (!target) continue;
+
+    const result = await doSendFlow(target, message);
+
+    results.push({
+      target,
+      ok: result?.ok === true,
+      error: result?.error || null,
+    });
+
+    // Give WhatsApp a moment before starting the next recipient.
+    await sleep(1000);
+  }
+
+  const failed = results.filter((r) => !r.ok);
+
+  if (failed.length === 0) {
+    return { ok: true, results };
+  }
+
+  return {
+    ok: false,
+    error: failed.map((r) => `${r.target}: ${r.error || "Send failed."}`).join(" | "),
+    results,
+  };
+}
+
 function captureChatTitle() {
   // First priority: use the exact testid attribute WhatsApp puts on the main chat room title
   const exactHeader = document.querySelector('span[data-testid="conversation-info-header-chat-title"]');
@@ -199,7 +231,11 @@ if (!window.__waSchedulerRegistered) {
     }
 
     if (msg.action === "send") {
-      doSendFlow(msg.target, msg.message).then(sendResponse);
+      if (Array.isArray(msg.recipients) && msg.recipients.length > 0) {
+        doMultiSendFlow(msg.recipients, msg.message).then(sendResponse);
+      } else {
+        doSendFlow(msg.target, msg.message).then(sendResponse);
+      }
       return true;
     }
   });
