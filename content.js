@@ -193,6 +193,76 @@ async function doMultiSendFlow(recipients, message) {
   };
 }
 
+async function searchRecipients(query) {
+  try {
+    const searchBoxSelectors = [
+      'input[aria-label="Search or start a new chat"]',
+      'div[contenteditable="true"][data-tab="3"]',
+      '#side div[contenteditable="true"]',
+      'div[title="Search input textbox"]',
+      'input[type="text"][data-tab="3"]'
+    ];
+
+    let searchBox;
+
+    for (let i = 0; i < 20; i++) {
+      for (const sel of searchBoxSelectors) {
+        searchBox = document.querySelector(sel);
+        if (searchBox) break;
+      }
+      if (searchBox) break;
+      await sleep(300);
+    }
+
+    if (!searchBox) {
+      return { ok: false, error: "Could not find WhatsApp search box." };
+    }
+
+    // Clear the existing search.
+    searchBox.focus();
+
+    if (searchBox.tagName === "INPUT") {
+      searchBox.value = "";
+      triggerInputEvent(searchBox);
+    } else {
+      document.execCommand("selectAll");
+      document.execCommand("delete");
+    }
+
+    await sleep(200);
+
+    // Enter the search text.
+    simulateType(searchBox, query);
+    await sleep(1000);
+
+    // Read the visible search results from the WhatsApp side panel.
+    const matches = [];
+    const seen = new Set();
+
+    const spans = Array.from(
+      document.querySelectorAll('#pane-side span[title], #side span[title]')
+    );
+
+    for (const span of spans) {
+      const title = (span.getAttribute("title") || span.textContent || "").trim();
+
+      if (!title) continue;
+
+      const key = title.toLowerCase();
+      if (seen.has(key)) continue;
+
+      if (key.includes(query.trim().toLowerCase())) {
+        seen.add(key);
+        matches.push(title);
+      }
+    }
+
+    return { ok: true, matches };
+  } catch (err) {
+    return { ok: false, error: String(err?.message || err) };
+  }
+}
+
 function captureChatTitle() {
   // First priority: use the exact testid attribute WhatsApp puts on the main chat room title
   const exactHeader = document.querySelector('span[data-testid="conversation-info-header-chat-title"]');
@@ -234,6 +304,11 @@ if (!window.__waSchedulerRegistered) {
       return;
     }
 
+    if (msg.action === "searchRecipients") {
+      searchRecipients(String(msg.query || "")).then(sendResponse);
+      return true;
+    }
+    
     if (msg.action === "send") {
       if (Array.isArray(msg.recipients) && msg.recipients.length > 0) {
         doMultiSendFlow(msg.recipients, msg.message).then(sendResponse);
