@@ -15,6 +15,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("btn-cancel-edit").addEventListener("click", resetScheduleForm);
   document.getElementById("btn-capture").addEventListener("click", captureOpenChat);
   document.getElementById("btn-clear-history").addEventListener("click", clearHistory);
+  document.getElementById("target").addEventListener("input", searchRecipientMatches);
   document.querySelectorAll(".filter-tab").forEach((btn) => {
     btn.addEventListener("click", () => {
       currentFilter = btn.dataset.filter;
@@ -438,3 +439,67 @@ function escapeHtml(text) {
 
 // Pre-fill the time field with "now + 5 mins" for convenience
 document.getElementById("time").value = formatDateTimeLocal(new Date(Date.now() + 5 * 60 * 1000));
+
+async function searchRecipientMatches() {
+  const input = document.getElementById("target");
+  const matchesEl = document.getElementById("recipient-matches");
+
+  const query = input.value.trim();
+
+  if (!query) {
+    matchesEl.innerHTML = "";
+    matchesEl.hidden = true;
+    return;
+  }
+
+  try {
+    const tab = await getActiveWhatsAppTab();
+
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      files: ["content.js"]
+    });
+
+    chrome.tabs.sendMessage(
+      tab.id,
+      {
+        action: "searchRecipients",
+        query
+      },
+      (response) => {
+        if (chrome.runtime.lastError) {
+          matchesEl.innerHTML = "";
+          matchesEl.hidden = true;
+          return;
+        }
+
+        matchesEl.innerHTML = "";
+
+        if (!response?.ok || !Array.isArray(response.matches) || response.matches.length === 0) {
+          matchesEl.hidden = true;
+          return;
+        }
+
+        response.matches.forEach((name) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "recipient-match";
+          button.textContent = name;
+
+          button.addEventListener("click", () => {
+            input.value = name;
+            matchesEl.innerHTML = "";
+            matchesEl.hidden = true;
+          });
+
+          matchesEl.appendChild(button);
+        });
+
+        matchesEl.hidden = false;
+      }
+    });
+  } catch (e) {
+    matchesEl.innerHTML = "";
+    matchesEl.hidden = true;
+  }
+}
