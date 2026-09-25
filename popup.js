@@ -9,6 +9,7 @@ const STORAGE_KEY = "schedules";
 const RECURRING_OPTIONS = ["minute", "daily", "weekly", "monthly"];
 let currentFilter = "all";
 let editingScheduleId = null;
+let selectedRecipients = [];
 
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("btn-save").addEventListener("click", saveSchedule);
@@ -498,9 +499,15 @@ async function searchRecipientMatches() {
           button.textContent = name;
 
           button.addEventListener("click", () => {
-            input.value = name;
+            if (!selectedRecipients.includes(name)) {
+              selectedRecipients.push(name);
+            }
+          
+            input.value = "";
             matchesEl.innerHTML = "";
             matchesEl.hidden = true;
+          
+            renderSelectedRecipients();
           });
 
           matchesEl.appendChild(button);
@@ -514,4 +521,36 @@ async function searchRecipientMatches() {
     document.getElementById("form-error").textContent =
       e.message || "Recipient search failed.";
   }
+}
+
+function renderSelectedRecipients() {
+  const container = document.getElementById("selected-recipients");
+
+  container.innerHTML = "";
+
+  selectedRecipients.forEach((name) => {
+    const chip = document.createElement("span");
+    chip.className = "recipient-chip";
+
+    const label = document.createElement("span");
+    label.textContent = name;
+
+    const removeButton = document.createElement("button");
+    removeButton.type = "button";
+    removeButton.className = "recipient-chip-remove";
+    removeButton.textContent = "×";
+    removeButton.title = `Remove ${name}`;
+
+    removeButton.addEventListener("click", () => {
+      selectedRecipients = selectedRecipients.filter(
+        (recipient) => recipient !== name
+      );
+
+      renderSelectedRecipients();
+    });
+
+    chip.appendChild(label);
+    chip.appendChild(removeButton);
+    container.appendChild(chip);
+  });
 }
