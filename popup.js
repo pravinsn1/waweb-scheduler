@@ -180,15 +180,34 @@ function getFormValues() {
   const nextRun = new Date(document.getElementById("time").value).getTime();
   const recurring = document.getElementById("recurring").value;
 
-  if ((!editingScheduleId && !target) || !message || !Number.isFinite(nextRun)) {
-    return { error: "Target, message, and time are required." };
+  const recipients = selectedRecipients.length > 0
+    ? [...selectedRecipients]
+    : target
+        .split(",")
+        .map((name) => name.trim())
+        .filter(Boolean);
+
+  if ((!editingScheduleId && recipients.length === 0) || !message || !Number.isFinite(nextRun)) {
+    return {
+      error: "Choose at least one recipient, enter a message, and set a future time."
+    };
   }
-  if (nextRun <= Date.now()) return { error: "Time must be in the future." };
+
+  if (nextRun <= Date.now()) {
+    return { error: "Time must be in the future." };
+  }
+
   if (editingScheduleId && !RECURRING_OPTIONS.includes(recurring)) {
     return { error: "Choose a recurring frequency." };
   }
 
-  return { target, message, nextRun, recurring };
+  return {
+    target: recipients.join(", "),
+    recipients,
+    message,
+    nextRun,
+    recurring
+  };
 }
 
 function resetScheduleForm() {
@@ -252,10 +271,7 @@ function saveSchedule() {
     id: String(Date.now()) + Math.floor(Math.random() * 1000),
     target: values.target,
     targetType: "name",
-    recipients: values.target
-    .split(",")
-    .map((name) => name.trim())
-    .filter(Boolean),
+    recipients: values.recipients,
     message: values.message,
     scheduledTime: values.nextRun,
     nextRun: values.nextRun,
