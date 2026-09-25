@@ -475,8 +475,19 @@ async function searchRecipientMatches() {
 
         matchesEl.innerHTML = "";
 
-        if (!response?.ok || !Array.isArray(response.matches) || response.matches.length === 0) {
+        if (!response?.ok) {
+          matchesEl.innerHTML = "";
           matchesEl.hidden = true;
+          document.getElementById("form-error").textContent =
+            response?.error || "Recipient search failed.";
+          return;
+        }
+        
+        if (!Array.isArray(response.matches) || response.matches.length === 0) {
+          matchesEl.innerHTML = "";
+          matchesEl.hidden = true;
+          document.getElementById("form-error").textContent =
+            "No matching WhatsApp contacts or groups found.";
           return;
         }
 
@@ -501,5 +512,7 @@ async function searchRecipientMatches() {
   } catch (e) {
     matchesEl.innerHTML = "";
     matchesEl.hidden = true;
+    document.getElementById("form-error").textContent =
+      e.message || "Recipient search failed.";
   }
 }
