@@ -507,7 +507,6 @@ async function searchRecipientMatches() {
         });
 
         matchesEl.hidden = false;
-      }
     });
   } catch (e) {
     matchesEl.innerHTML = "";
